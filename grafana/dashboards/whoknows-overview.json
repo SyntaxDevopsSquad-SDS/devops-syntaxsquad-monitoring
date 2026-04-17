@@ -74,7 +74,7 @@
       },
       "targets": [
         {
-          "expr": "sum(increase(whoknows_http_requests_total[$__range]))",
+          "expr": "round(sum(increase(whoknows_http_requests_total[$__range])))",
           "refId": "A"
         }
       ],
@@ -163,7 +163,7 @@
       },
       "targets": [
         {
-          "expr": "sum(increase(whoknows_login_attempts_total{outcome=\"success\"}[$__range]))",
+          "expr": "round(sum(increase(whoknows_login_attempts_total{outcome=\"success\"}[$__range])))",
           "refId": "A"
         }
       ],
@@ -194,7 +194,7 @@
       },
       "targets": [
         {
-          "expr": "sum(increase(whoknows_login_attempts_total{outcome=\"failure\"}[$__range]))",
+          "expr": "round(sum(increase(whoknows_login_attempts_total{outcome=\"failure\"}[$__range])))",
           "refId": "A"
         }
       ],
@@ -225,7 +225,7 @@
       },
       "targets": [
         {
-          "expr": "sum(increase(whoknows_registrations_total{outcome=\"success\"}[$__range]))",
+          "expr": "round(sum(increase(whoknows_registrations_total{outcome=\"success\"}[$__range]))) or vector(0)",
           "refId": "A"
         }
       ],
@@ -253,7 +253,7 @@
       },
       "targets": [
         {
-          "expr": "sum(increase(whoknows_registrations_total{outcome=~\"failure|validation|validation_failed|invalid|error\"}[$__range]))",
+          "expr": "round(sum(increase(whoknows_registrations_total{outcome=~\"failure|validation|validation_failed|validation_error|invalid|error\"}[$__range]))) or vector(0)",
           "legendFormat": "failed/validation",
           "refId": "A"
         }
@@ -311,13 +311,45 @@
       },
       "targets": [
         {
-          "expr": "topk(10, sum by (query) (increase(whoknows_searches_total{language=~\"$language\",query=~\"$query\"}[$__range])))",
+          "expr": "topk(10, round(sum by (query) (increase(whoknows_searches_total{language=~\"$language\",query=~\"$query\"}[$__range]))))",
           "legendFormat": "{{query}}",
           "refId": "A"
         }
       ],
       "title": "Top Search Terms (TopK)",
       "type": "timeseries"
+    },
+    {
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 24
+      },
+      "id": 11,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value"
+      },
+      "targets": [
+        {
+          "expr": "100 * avg_over_time(up{job=\"whoknows-go-backend\"}[$__range])",
+          "legendFormat": "uptime %",
+          "refId": "A"
+        }
+      ],
+      "title": "Backend Uptime (%)",
+      "type": "stat"
     }
   ],
   "refresh": "30s",
@@ -379,6 +411,6 @@
   "timezone": "",
   "title": "WhoKnows Overview",
   "uid": "whoknows-overview",
-  "version": 1,
+  "version": 2,
   "weekStart": ""
 }
