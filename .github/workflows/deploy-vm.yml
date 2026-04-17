@@ -1,10 +1,13 @@
 name: Deploy to VM
 
 on:
-  push:
+  workflow_run:
+    workflows:
+      - Validate Monitoring Stack
+    types:
+      - completed
     branches:
       - main
-      - feature/monitoring
   workflow_dispatch:
     inputs:
       branch:
@@ -19,6 +22,11 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    if: >-
+      (github.event_name == 'workflow_dispatch') ||
+      (github.event_name == 'workflow_run' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push')
 
     steps:
       - name: Deploy via SSH and pull latest code
@@ -33,7 +41,7 @@ jobs:
 
             APP_PATH="${{ secrets.VM_APP_PATH }}"
             REPO_URL="${{ secrets.VM_REPO_URL }}"
-            BRANCH="${{ github.event.inputs.branch || github.ref_name }}"
+            BRANCH="${{ github.event.workflow_run.head_branch || github.event.inputs.branch || 'main' }}"
 
             if [ ! -d "$APP_PATH/.git" ]; then
               sudo mkdir -p "$APP_PATH"
