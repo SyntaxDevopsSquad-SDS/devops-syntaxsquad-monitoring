@@ -13,3 +13,7 @@ docker-compose.override.yml
 # Optional local exports/backups
 backups/
 exports/
+
+# Let's Encrypt local state
+certbot/conf/
+certbot/www/

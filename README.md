@@ -7,18 +7,22 @@ This stack scrapes the WhoKnows backend metrics endpoint at:
 
 ## Stack
 
+- Nginx (single entrypoint/reverse proxy)
+- Certbot + Let's Encrypt (TLS certificates and automatic renewal)
 - Prometheus (metrics collection and storage)
 - Grafana (visualization and dashboards)
 - Optional: Node Exporter (VM host metrics)
 
 ## Repository Structure
 
-- `docker-compose.yml`: Runs Prometheus, Grafana and optional Node Exporter with named volumes and healthchecks.
+- `docker-compose.yml`: Runs Nginx, Prometheus, Grafana and optional Node Exporter with named volumes and healthchecks.
+- `nginx/nginx.conf`: Reverse proxy config that redirects `80` to `443`, serves ACME challenge, and exposes `/grafana/` + `/prometheus/` over HTTPS.
+- `scripts/init-letsencrypt.sh`: One-time bootstrap script that requests the first Let's Encrypt certificate.
 - `prometheus/prometheus.yml`: Scrape jobs and intervals (includes `whoknows-go-backend` every `15s`).
 - `grafana/provisioning/datasources/datasource.yml`: Auto-provisions Prometheus datasource.
 - `grafana/provisioning/dashboards/dashboards.yml`: Auto-imports dashboards at startup.
 - `grafana/dashboards/whoknows-overview.json`: Main WhoKnows overview dashboard.
-- `.env.example`: Example environment variables for Grafana admin credentials.
+- `.env.example`: Example environment variables for Grafana admin credentials and Certbot settings.
 - `.github/workflows/validate-monitoring.yml`: PR-only validation of Compose and Prometheus config.
 - `.gitignore`: Prevents committing secrets and local artifacts.
 
@@ -42,23 +46,38 @@ Example `.env` values:
 ```env
 GRAFANA_ADMIN_USER=admin
 GRAFANA_ADMIN_PASSWORD=ReplaceWithStrongPassword123!
+MONITORING_DOMAIN=monitor.example.com
+CERTBOT_EMAIL=ops@example.com
+CERTBOT_CERT_NAME=monitoring
+CERTBOT_STAGING=0
 ```
 
-3. Start services:
+3. Bootstrap the first Let's Encrypt certificate:
 
 ```bash
+chmod +x scripts/init-letsencrypt.sh
 docker compose pull
+docker compose --env-file .env run --rm certbot --version
+set -a
+. ./.env
+set +a
+./scripts/init-letsencrypt.sh
+```
+
+4. Start full stack:
+
+```bash
 docker compose up -d
 docker compose ps
 docker compose logs -f
 ```
 
-4. Access:
+5. Access:
 
-- Grafana: `http://<MONITORING_VM_IP>:3000`
-- Prometheus: `http://<MONITORING_VM_IP>:9090`
+- Grafana: `https://<MONITORING_DOMAIN>/grafana/`
+- Prometheus: `https://<MONITORING_DOMAIN>/prometheus/`
 
-5. Optional VM host metrics via Node Exporter:
+6. Optional VM host metrics via Node Exporter:
 
 ```bash
 docker compose --profile vm-metrics up -d
@@ -96,14 +115,27 @@ Includes panels for:
 Open only what is needed:
 
 - Inbound to monitoring VM:
-	- `3000/tcp` (Grafana)
-	- `9090/tcp` (Prometheus)
+	- `80/tcp` (HTTP for ACME challenge + redirect)
+	- `443/tcp` (HTTPS for Grafana and Prometheus)
 - Outbound from monitoring VM:
 	- `8080/tcp` to `syntax-reborndev.com` (backend metrics endpoint)
 
 Recommended:
-- Restrict source IPs for ports `3000` and `9090` to trusted admin/network ranges.
+- Restrict source IPs for `443` to trusted admin/network ranges if possible.
 - Keep `.env` out of Git (already covered by `.gitignore`).
+
+## TLS / Certbot Notes
+
+- Certificates are stored in `certbot/conf` (gitignored).
+- ACME challenge files are served from `certbot/www`.
+- Nginx uses certificate name `monitoring` by default (`CERTBOT_CERT_NAME`).
+- Automatic renewals run in the `certbot` container every 12 hours.
+
+Manual renewal test:
+
+```bash
+docker compose run --rm certbot renew --webroot -w /var/www/certbot --dry-run
+```
 
 ## Healthchecks
 
