@@ -10,9 +10,10 @@ scrape_configs:
           - syntax-reborndev.com:8080
 
   - job_name: prometheus
+    metrics_path: /prometheus/metrics
     static_configs:
       - targets:
-          - localhost:9090
+          - prometheus:9090
 
   - job_name: node-exporter
     static_configs:

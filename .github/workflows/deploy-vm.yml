@@ -54,5 +54,5 @@ jobs:
             git checkout "$BRANCH"
             git pull origin "$BRANCH"
             docker compose pull
-            docker compose up -d
+            docker compose --profile vm-metrics up -d
             docker compose ps
