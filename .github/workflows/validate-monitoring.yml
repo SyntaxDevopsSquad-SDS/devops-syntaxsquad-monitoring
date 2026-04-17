@@ -2,6 +2,9 @@ name: Validate Monitoring Stack
 
 on:
   pull_request:
+  push:
+    branches:
+      - main
   workflow_dispatch:
 
 jobs:
@@ -14,6 +17,9 @@ jobs:
 
       - name: Validate Docker Compose syntax
         run: docker compose config
+
+      - name: Validate Grafana dashboard JSON
+        run: jq empty grafana/dashboards/whoknows-overview.json
 
       - name: Validate Prometheus config with promtool
         run: |
