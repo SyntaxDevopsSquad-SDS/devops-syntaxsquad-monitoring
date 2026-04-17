@@ -1,0 +1,50 @@
+name: Deploy to VM
+
+on:
+  push:
+    branches:
+      - main
+      - feature/monitoring
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: "Branch to deploy"
+        required: false
+        default: "main"
+
+concurrency:
+  group: deploy-vm
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy via SSH and pull latest code
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.VM_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.VM_PORT }}
+          script: |
+            set -e
+
+            APP_PATH="${{ secrets.VM_APP_PATH }}"
+            REPO_URL="${{ secrets.VM_REPO_URL }}"
+            BRANCH="${{ github.event.inputs.branch || github.ref_name }}"
+
+            if [ ! -d "$APP_PATH/.git" ]; then
+              sudo mkdir -p "$APP_PATH"
+              sudo chown -R "$(whoami):$(whoami)" "$APP_PATH"
+              git clone "$REPO_URL" "$APP_PATH"
+            fi
+
+            cd "$APP_PATH"
+            git fetch --all --prune
+            git checkout "$BRANCH"
+            git pull origin "$BRANCH"
+            docker compose pull
+            docker compose up -d
+            docker compose ps
