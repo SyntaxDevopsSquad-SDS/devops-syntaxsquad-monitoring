@@ -583,7 +583,13 @@
       "pluginVersion": "11.1.4",
       "targets": [
         {
-          "expr": "round(sum(increase(whoknows_registrations_total{outcome=\"success\"}[$__range]))) or vector(0)",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "code",
+          "expr": "sum(whoknows_registrations_total{outcome=\"success\"})",
+          "range": true,
           "refId": "A"
         }
       ],
@@ -933,7 +939,7 @@
       "type": "stat"
     }
   ],
-  "refresh": "",
+  "refresh": "5s",
   "schemaVersion": 39,
   "tags": [
     "whoknows",
@@ -1001,6 +1007,6 @@
   "timezone": "",
   "title": "WhoKnows Overview",
   "uid": "whoknows-overview",
-  "version": 2,
+  "version": 3,
   "weekStart": ""
 }
