@@ -16,6 +16,7 @@ This stack scrapes the WhoKnows backend metrics endpoint at:
 ## Repository Structure
 
 - `docker-compose.yml`: Runs Nginx, Prometheus, Grafana and optional Node Exporter with named volumes and healthchecks.
+- `docker-compose.dev.yml`: Local dev stack with direct Grafana/Prometheus ports and no TLS reverse proxy.
 - `nginx/nginx.conf`: Reverse proxy config that redirects `80` to `443`, serves ACME challenge, and exposes `/grafana/` + `/prometheus/` over HTTPS.
 - `scripts/init-letsencrypt.sh`: One-time bootstrap script that requests the first Let's Encrypt certificate.
 - `prometheus/prometheus.yml`: Scrape jobs and intervals (includes `whoknows-go-backend` every `15s`).
@@ -74,7 +75,7 @@ docker compose logs -f
 
 5. Access:
 
-- Grafana: `https://<MONITORING_DOMAIN>/grafana/`
+- Grafana: `https://<MONITORING_DOMAIN>/`
 - Prometheus: `https://<MONITORING_DOMAIN>/prometheus/`
 
 6. Optional VM host metrics via Node Exporter:
@@ -88,13 +89,29 @@ docker compose --profile vm-metrics up -d
 - Scrape target: `syntax-reborndev.com:8080`
 - Job name: `whoknows-go-backend`
 - `scrape_interval: 15s`
-- Retention: `7d` via `--storage.tsdb.retention.time=7d`
+- Retention: `30d` via `--storage.tsdb.retention.time=30d`
 
 ## Grafana Provisioning Details
 
 - Datasource is auto-created from `grafana/provisioning/datasources/datasource.yml`.
+- Datasource URL is environment-driven via `PROMETHEUS_URL`:
+	- Dev (`docker-compose.dev.yml`): `http://prometheus:9090`
+	- Prod (`docker-compose.yml`): `http://prometheus:9090/prometheus`
 - Dashboard is auto-imported from `grafana/dashboards/whoknows-overview.json` through `dashboards.yml`.
 - Admin credentials come from `.env` (`GRAFANA_ADMIN_USER`, `GRAFANA_ADMIN_PASSWORD`), not hardcoded in files.
+
+## Local Development
+
+Start dev stack:
+
+```bash
+docker compose -f docker-compose.dev.yml up -d
+```
+
+Access locally:
+
+- Grafana: `http://localhost:3000`
+- Prometheus: `http://localhost:9090`
 
 ## Dashboard Coverage (`whoknows-overview`)
 
